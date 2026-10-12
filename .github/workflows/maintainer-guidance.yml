@@ -1,0 +1,35 @@
+name: Maintainer guidance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - AGENTS.md
+      - README.md
+      - .github/workflows/maintainer-guidance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  guidance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check concise guidance and the upstream README link
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          guide = Path('AGENTS.md').read_bytes()
+          assert len(guide) <= 8192, 'AGENTS.md exceeds 8 KiB'
+          assert len(guide.splitlines()) <= 300, 'AGENTS.md exceeds 300 lines'
+          readme = Path('README.md')
+          assert readme.is_symlink(), 'Preserve the upstream README symlink'
+          assert readme.is_file(), 'README symlink does not resolve to a file'
+          assert readme.resolve().is_relative_to(Path.cwd()), 'README points outside the repository'
+          print('Maintainer guidance budget and upstream README link pass.')
+          PY
